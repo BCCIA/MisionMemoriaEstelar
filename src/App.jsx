@@ -10,13 +10,14 @@ import React, {
    Nombre y rutas por defecto
 ========================= */
 const GAME_NAME = "Misión Memoria Espacial";
-const DEFAULT_VIDEO_URL = "/video/intro-mision.mp4";
-const DEFAULT_POSTER_URL = "/video/intro-mision_poster.jpg"; // opcional
+const BASE = import.meta.env.BASE_URL;
+const DEFAULT_VIDEO_URL = `${BASE}video/intro-mision.mp4`;
+const DEFAULT_POSTER_URL = `${BASE}video/intro-mision_poster.jpg`;
 
 /* =========================
    Config imágenes de cartas
 ========================= */
-const CARDS_DIR = "/cards/";
+const CARDS_DIR = `${BASE}cards/`;
 const CANDIDATE_COUNT = 24;
 const CANDIDATES = Array.from({ length: CANDIDATE_COUNT }, (_, i) =>
   `${CARDS_DIR}card-${String(i + 1).padStart(2, "0")}.png`
@@ -329,7 +330,13 @@ export default function App() {
 
   const videoUrl = DEFAULT_VIDEO_URL;
 
-  useEffect(() => { document.title = GAME_NAME; }, []);
+  useEffect(() => {
+    document.title = GAME_NAME;
+    document.documentElement.style.setProperty(
+      '--card-back-img',
+      `url(${BASE}ui/card-back.png) center / contain no-repeat`
+    );
+  }, []);
 
   // Descubre imágenes al cargar
   useEffect(() => {

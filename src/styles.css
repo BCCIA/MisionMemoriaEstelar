@@ -384,11 +384,9 @@ html,body{
 /* Dorso */
 /* Dorso con logo */
 .card-back{
-  /* capa oscura suave encima del logo para contraste */
   background:
     linear-gradient(180deg, rgba(7,11,22,.25), rgba(7,11,22,.35)),
-    url("/ui/card-back.png") center / contain no-repeat,
-    linear-gradient(145deg,#0a1324,#0c1a33); /* fallback si no hay logo */
+    var(--card-back-img, linear-gradient(145deg,#0a1324,#0c1a33));
   border:1px solid #1f2a44;
 }
 
