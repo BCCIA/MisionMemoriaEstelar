@@ -452,7 +452,111 @@ html,body{
 .modal-card h2{ margin: 6px 0 8px }
 .modal-actions{ margin-top:12px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap }
 .scoreline{ color:var(--ink) }
-.winner{ color: var(--ok); font-weight: 700; }
+.winner{ color: var(--ok); font-weight: 700; font-size:18px; margin:6px 0 }
+
+/* Win modal — personaje ganador */
+.win-char{
+  width:90px; height:90px; margin: 0 auto 4px;
+  filter: drop-shadow(0 0 14px var(--ch-color, #60a5fa));
+  animation: winner-bounce .6s cubic-bezier(0.175,0.885,0.32,1.4) both;
+}
+@keyframes winner-bounce{
+  from{ transform:scale(0) rotate(-10deg) }
+  to  { transform:scale(1) rotate(0deg)   }
+}
+.win-score-row{
+  display:flex; align-items:center; justify-content:center;
+  gap:14px; margin:10px 0 4px;
+}
+.win-score-cell{
+  display:flex; flex-direction:column; align-items:center; gap:4px;
+  padding:8px 12px; border-radius:12px;
+  border:1px solid color-mix(in srgb, var(--ch-color,#60a5fa) 40%, transparent);
+  background: color-mix(in srgb, var(--ch-color,#60a5fa) 8%, transparent);
+}
+.win-score-cell span{ font-size:12px; color:var(--muted) }
+.win-score-avatar{ width:52px; height:52px }
+.win-pts{ font-size:22px; color:var(--ink) }
+.win-vs{ color:var(--muted); font-size:12px }
+
+/* ======== DUO BAR (avatares en stats) ======== */
+.duo-bar{
+  display:flex; align-items:center; justify-content:space-between;
+  width:100%; gap:8px;
+}
+.duo-player{
+  display:flex; align-items:center; gap:10px;
+  padding:6px 10px; border-radius:14px;
+  border:2px solid transparent;
+  transition: border-color .3s ease, box-shadow .3s ease, transform .3s ease, opacity .3s ease;
+}
+.duo-player.active{
+  border-color: var(--char-color, #60a5fa);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--char-color,#60a5fa) 45%, transparent),
+              inset 0 0 12px color-mix(in srgb, var(--char-color,#60a5fa) 10%, transparent);
+  transform: scale(1.04);
+  background: color-mix(in srgb, var(--char-color,#60a5fa) 8%, transparent);
+}
+.duo-player.idle{ opacity:.45; transform:scale(.96) }
+.duo-avatar{ width:52px; height:52px; flex-shrink:0 }
+.duo-avatar svg{ width:100%; height:100% }
+.duo-info{ display:flex; flex-direction:column; align-items:flex-start; }
+.duo-info.right{ align-items:flex-end }
+.duo-name{ font-size:12px; color:var(--muted); font-weight:600 }
+.duo-score{
+  font-size:26px; font-weight:800; line-height:1;
+  color: var(--char-color, var(--ink));
+  text-shadow: 0 0 10px color-mix(in srgb, var(--char-color,#60a5fa) 60%, transparent);
+}
+.duo-center{
+  flex:1; display:flex; align-items:center; justify-content:center;
+  font-size:22px; min-width:40px;
+}
+.turn-arrow{ color:var(--muted); font-size:20px }
+.turn-flash{
+  font-size:13px; font-weight:700; color:var(--ink);
+  text-align:center; white-space:nowrap;
+  animation: turn-pop .35s cubic-bezier(0.175,0.885,0.32,1.4) both;
+}
+@keyframes turn-pop{
+  from{ opacity:0; transform:scale(.7) }
+  to  { opacity:1; transform:scale(1)  }
+}
+
+/* ======== SELECTOR DE PERSONAJES ======== */
+.char-picker{ margin:14px 0 4px; text-align:left }
+.char-grid{
+  display:flex; gap:8px; flex-wrap:wrap; margin-top:6px;
+}
+.char-card{
+  display:flex; flex-direction:column; align-items:center; gap:4px;
+  padding:8px 6px; border-radius:12px; cursor:pointer;
+  border:2px solid var(--ring);
+  background:rgba(255,255,255,.02);
+  transition: border-color .2s ease, transform .2s ease, box-shadow .2s ease, opacity .2s ease;
+  min-width:72px; flex:1;
+}
+.char-card:hover:not(.taken){
+  border-color: var(--ch-color, var(--brand));
+  transform: translateY(-3px);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--ch-color,#60a5fa) 30%, transparent);
+}
+.char-card.selected{
+  border-color: var(--ch-color, var(--brand));
+  background: color-mix(in srgb, var(--ch-color,#60a5fa) 10%, transparent);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--ch-color,#60a5fa) 35%, transparent);
+  transform: translateY(-2px) scale(1.04);
+}
+.char-card.taken{ opacity:.28; cursor:not-allowed }
+.char-card-avatar{ width:54px; height:54px }
+.char-card-avatar svg{ width:100%; height:100% }
+.char-card-name{ font-size:11px; color:var(--muted); font-weight:600; text-align:center }
+.char-card.selected .char-card-name{ color:var(--ink) }
+
+.duo-pickers{
+  display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:8px 0;
+}
+@media(max-width:600px){ .duo-pickers{ grid-template-columns:1fr } }
 
 /* ======== FX MATCH ======== */
 .card.matched-fx{

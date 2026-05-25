@@ -87,6 +87,141 @@ const ICONS = [Planet, Saturn, Rocket, Star, Comet, Astronaut, Telescope, Galaxy
 
 const SPARK_COLORS = ['#ffffff', '#fde68a', '#60a5fa', '#5eead4', '#a78bfa', '#f472b6', '#fb923c'];
 
+/* =====================
+   Sistema de audio
+===================== */
+let _audioCtx = null;
+const getCtx = () => {
+  if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (_audioCtx.state === 'suspended') _audioCtx.resume();
+  return _audioCtx;
+};
+const tone = (freq, t0, dur, vol = 0.22, type = 'sine') => {
+  try {
+    const ctx = getCtx();
+    const osc = ctx.createOscillator();
+    const g   = ctx.createGain();
+    osc.connect(g); g.connect(ctx.destination);
+    osc.type = type;
+    osc.frequency.value = freq;
+    g.gain.setValueAtTime(0, ctx.currentTime + t0);
+    g.gain.linearRampToValueAtTime(vol, ctx.currentTime + t0 + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t0 + dur);
+    osc.start(ctx.currentTime + t0);
+    osc.stop(ctx.currentTime + t0 + dur + 0.02);
+  } catch (_e) { /* AudioContext no disponible */ }
+};
+const playFlip    = () => { tone(800, 0, 0.07, 0.15, 'sine'); tone(500, 0.04, 0.06, 0.08, 'sine'); };
+const playMatch   = () => { [[660,0],[880,0.13],[1100,0.26]].forEach(([f,t]) => tone(f, t, 0.28, 0.25, 'triangle')); };
+const playNoMatch = () => { tone(280, 0, 0.18, 0.12, 'sawtooth'); };
+const playWin     = () => {
+  [[523,0],[659,0.14],[784,0.28],[1047,0.42],[784,0.56],[1047,0.70],[1319,0.84]]
+    .forEach(([f,t]) => tone(f, t, 0.35, 0.22, 'triangle'));
+};
+
+/* =====================
+   Personajes seleccionables
+===================== */
+const AstroChar = () => (
+  <svg viewBox="0 0 60 72" fill="none">
+    <circle cx="30" cy="21" r="16" fill="#cbd5e1" stroke="#94a3b8" strokeWidth="1.5"/>
+    <circle cx="30" cy="21" r="10" fill="#1e3a8a"/>
+    <ellipse cx="27" cy="18" rx="3" ry="2" fill="rgba(255,255,255,.45)"/>
+    <rect x="18" y="35" width="24" height="22" rx="7" fill="#cbd5e1" stroke="#94a3b8" strokeWidth="1.5"/>
+    <rect x="23" y="41" width="14" height="8" rx="3" fill="#94a3b8"/>
+    <circle cx="30" cy="45" r="2.5" fill="#60a5fa"/>
+    <rect x="7"  y="36" width="13" height="7" rx="3.5" fill="#cbd5e1" stroke="#94a3b8" strokeWidth="1.5"/>
+    <rect x="40" y="36" width="13" height="7" rx="3.5" fill="#cbd5e1" stroke="#94a3b8" strokeWidth="1.5"/>
+    <rect x="20" y="55" width="8"  height="11" rx="3" fill="#94a3b8"/>
+    <rect x="32" y="55" width="8"  height="11" rx="3" fill="#94a3b8"/>
+  </svg>
+);
+const AlienChar = () => (
+  <svg viewBox="0 0 60 72" fill="none">
+    <line x1="22" y1="8"  x2="16" y2="1"  stroke="#4ade80" strokeWidth="2" strokeLinecap="round"/>
+    <circle cx="15" cy="0" r="3" fill="#fbbf24"/>
+    <line x1="38" y1="8"  x2="44" y2="1"  stroke="#4ade80" strokeWidth="2" strokeLinecap="round"/>
+    <circle cx="45" cy="0" r="3" fill="#fbbf24"/>
+    <ellipse cx="30" cy="22" rx="20" ry="18" fill="#4ade80"/>
+    <ellipse cx="21" cy="20" rx="6" ry="8" fill="#111827"/>
+    <ellipse cx="39" cy="20" rx="6" ry="8" fill="#111827"/>
+    <ellipse cx="19" cy="18" rx="2.5" ry="3.5" fill="#60a5fa"/>
+    <ellipse cx="37" cy="18" rx="2.5" ry="3.5" fill="#60a5fa"/>
+    <path d="M23 32 Q30 38 37 32" stroke="#166534" strokeWidth="2" strokeLinecap="round" fill="none"/>
+    <ellipse cx="30" cy="56" rx="14" ry="16" fill="#4ade80"/>
+    <path d="M16 48 Q6  54 8  64"  stroke="#4ade80" strokeWidth="7" strokeLinecap="round" fill="none"/>
+    <path d="M44 48 Q54 54 52 64" stroke="#4ade80" strokeWidth="7" strokeLinecap="round" fill="none"/>
+  </svg>
+);
+const RobotChar = () => (
+  <svg viewBox="0 0 60 72" fill="none">
+    <rect x="28" y="0" width="4" height="10" rx="2" fill="#6b7280"/>
+    <circle cx="30" cy="0" r="4" fill="#f59e0b"/>
+    <rect x="10" y="10" width="40" height="26" rx="5" fill="#6b7280" stroke="#4b5563" strokeWidth="1.5"/>
+    <rect x="15" y="17" width="11" height="8" rx="3" fill="#38bdf8"/>
+    <rect x="34" y="17" width="11" height="8" rx="3" fill="#38bdf8"/>
+    <rect x="18" y="30" width="24" height="3" rx="1.5" fill="#374151"/>
+    <rect x="22" y="31" width="4" height="1.5" rx=".75" fill="#f59e0b"/>
+    <rect x="28" y="31" width="4" height="1.5" rx=".75" fill="#f59e0b"/>
+    <rect x="34" y="31" width="4" height="1.5" rx=".75" fill="#f59e0b"/>
+    <rect x="14" y="38" width="32" height="24" rx="5" fill="#6b7280" stroke="#4b5563" strokeWidth="1.5"/>
+    <circle cx="30" cy="50" r="6" fill="#374151"/>
+    <circle cx="30" cy="50" r="3" fill="#38bdf8"/>
+    <rect x="2"  y="39" width="14" height="8" rx="4" fill="#6b7280" stroke="#4b5563" strokeWidth="1.5"/>
+    <rect x="44" y="39" width="14" height="8" rx="4" fill="#6b7280" stroke="#4b5563" strokeWidth="1.5"/>
+    <rect x="18" y="60" width="10" height="9" rx="3" fill="#4b5563"/>
+    <rect x="32" y="60" width="10" height="9" rx="3" fill="#4b5563"/>
+  </svg>
+);
+const PilotChar = () => (
+  <svg viewBox="0 0 60 72" fill="none">
+    <ellipse cx="30" cy="11" rx="17" ry="10" fill="#92400e"/>
+    <ellipse cx="30" cy="21" rx="16" ry="16" fill="#fde68a"/>
+    <rect x="14" y="17" width="13" height="9"  rx="4.5" fill="#1e3a5f" opacity=".9"/>
+    <rect x="33" y="17" width="13" height="9"  rx="4.5" fill="#1e3a5f" opacity=".9"/>
+    <line x1="27" y1="21.5" x2="33" y2="21.5" stroke="#374151" strokeWidth="1.5"/>
+    <path d="M14 21 Q9 26 11 31"  stroke="#374151" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
+    <path d="M46 21 Q51 26 49 31" stroke="#374151" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
+    <path d="M18 34 Q30 40 42 34" stroke="#ef4444" strokeWidth="5" strokeLinecap="round" fill="none"/>
+    <rect x="14" y="40" width="32" height="26" rx="7" fill="#1e3a5f"/>
+    <line x1="30" y1="40" x2="30" y2="66" stroke="#374151" strokeWidth="1.5"/>
+    <rect x="4"  y="41" width="12" height="9" rx="4.5" fill="#1e3a5f"/>
+    <rect x="44" y="41" width="12" height="9" rx="4.5" fill="#1e3a5f"/>
+    <rect x="18" y="64" width="10" height="8" rx="3" fill="#374151"/>
+    <rect x="32" y="64" width="10" height="8" rx="3" fill="#374151"/>
+  </svg>
+);
+const CmdChar = () => (
+  <svg viewBox="0 0 60 72" fill="none">
+    <rect x="12" y="3"  width="36" height="10" rx="3" fill="#1e3a5f"/>
+    <rect x="15" y="11" width="30" height="3"  rx="1.5" fill="#f59e0b"/>
+    <ellipse cx="30" cy="26" rx="16" ry="16" fill="#fbbf24"/>
+    <ellipse cx="22" cy="24" rx="3" ry="4" fill="#1e3a5f"/>
+    <ellipse cx="38" cy="24" rx="3" ry="4" fill="#1e3a5f"/>
+    <line x1="18" y1="18" x2="25" y2="20" stroke="#92400e" strokeWidth="2" strokeLinecap="round"/>
+    <line x1="42" y1="18" x2="35" y2="20" stroke="#92400e" strokeWidth="2" strokeLinecap="round"/>
+    <line x1="24" y1="33" x2="36" y2="33" stroke="#92400e" strokeWidth="1.8" strokeLinecap="round"/>
+    <rect x="12" y="40" width="36" height="26" rx="6" fill="#1e3a5f"/>
+    <circle cx="22" cy="50" r="3.5" fill="#f59e0b"/>
+    <circle cx="30" cy="50" r="3.5" fill="#9ca3af"/>
+    <circle cx="38" cy="50" r="3.5" fill="#b45309"/>
+    <rect x="10" y="40" width="8" height="5" rx="2.5" fill="#f59e0b"/>
+    <rect x="42" y="40" width="8" height="5" rx="2.5" fill="#f59e0b"/>
+    <rect x="4"  y="40" width="10" height="8" rx="4" fill="#1e3a5f"/>
+    <rect x="46" y="40" width="10" height="8" rx="4" fill="#1e3a5f"/>
+    <rect x="18" y="64" width="10" height="8" rx="3" fill="#374151"/>
+    <rect x="32" y="64" width="10" height="8" rx="3" fill="#374151"/>
+  </svg>
+);
+
+const CHARACTERS = [
+  { id: 'astro', name: 'Astronauta', color: '#60a5fa', Avatar: AstroChar },
+  { id: 'alien', name: 'Alienígena', color: '#4ade80', Avatar: AlienChar },
+  { id: 'robot', name: 'Robot',      color: '#38bdf8', Avatar: RobotChar },
+  { id: 'pilot', name: 'Piloto',     color: '#ef4444', Avatar: PilotChar },
+  { id: 'cmd',   name: 'Comandante', color: '#f59e0b', Avatar: CmdChar   },
+];
+
 /* ============== Utilidades ============== */
 const DIFFICULTIES = { "4x4": { pairs: 8, cols: 4, rows: 4 }, "6x6": { pairs: 18, cols: 6, rows: 6 } };
 const shuffle = (arr) => { const a = arr.slice(); for (let i=a.length-1;i>0;i--){const j=(Math.random()*(i+1))|0; [a[i],a[j]]=[a[j],a[i]];} return a; };
@@ -327,6 +462,9 @@ export default function App() {
   const [scores, setScores] = useState([0, 0]);
   const [currentPlayer, setCurrentPlayer] = useState(0);
   const [fxIds, setFxIds] = useState([]);
+  const [charP1, setCharP1] = useState(CHARACTERS[0]);
+  const [charP2, setCharP2] = useState(CHARACTERS[1]);
+  const [turnBanner, setTurnBanner] = useState(false);
 
   const videoUrl = DEFAULT_VIDEO_URL;
 
@@ -406,6 +544,7 @@ export default function App() {
     if (!card || card.matched) return;
     if (flipped.includes(cardId)) return;
 
+    playFlip();
     if (!startedAt) setStartedAt(Date.now());
     const next = [...flipped, cardId];
     setFlipped(next);
@@ -419,6 +558,7 @@ export default function App() {
 
       if ((a.type === b.type)) {
         setTimeout(() => {
+          playMatch();
           setDeck(prev => prev.map(c => (c.id === aId || c.id === bId ? { ...c, matched:true } : c)));
           setFlipped([]);
           setMatchedCount(n => n + 1);
@@ -432,8 +572,13 @@ export default function App() {
         }, 350);
       } else {
         setTimeout(() => {
+          playNoMatch();
           setFlipped([]);
-          if (mode === "duo") setCurrentPlayer(p => (p === 0 ? 1 : 0));
+          if (mode === "duo") {
+            setCurrentPlayer(p => (p === 0 ? 1 : 0));
+            setTurnBanner(true);
+            setTimeout(() => setTurnBanner(false), 1200);
+          }
           setLocked(false);
         }, 800);
       }
@@ -444,6 +589,7 @@ export default function App() {
     const totalPairs = DIFFICULTIES[difficulty].pairs;
     if (matchedCount === totalPairs && totalPairs > 0 && !won) {
       setWon(true);
+      playWin();
       if (mode === "single") {
         const finalMs = Date.now() - startedAt;
         const record = { moves, timeMs: finalMs, time: fmtTime(finalMs) };
@@ -494,7 +640,7 @@ export default function App() {
         </div>
       </header>
 
-      {/* DASHBOARD (sin contador ni tips) */}
+      {/* DASHBOARD */}
       {phase === "menu" && (
         <Dashboard
           difficulty={difficulty}
@@ -503,6 +649,8 @@ export default function App() {
           setMode={setMode}
           onStart={startGame}
           statsRef={statsRef}
+          charP1={charP1} setCharP1={setCharP1}
+          charP2={charP2} setCharP2={setCharP2}
         />
       )}
 
@@ -520,10 +668,33 @@ export default function App() {
                 </div>
               </>
             ) : (
-              <div className="scoreboard">
-                <div className={"pill " + (currentPlayer === 0 ? "active" : "")}><span>Jugador 1</span> <b>{scores[0]}</b></div>
-                <div className={"pill " + (currentPlayer === 1 ? "active" : "")}><span>Jugador 2</span> <b>{scores[1]}</b></div>
-                <div className="turn">Turno: <b>{currentPlayer === 0 ? "Jugador 1" : "Jugador 2"}</b></div>
+              <div className="duo-bar">
+                <div className={"duo-player" + (currentPlayer === 0 ? " active" : " idle")}
+                     style={{ '--char-color': charP1.color }}>
+                  <div className="duo-avatar"><charP1.Avatar /></div>
+                  <div className="duo-info">
+                    <span className="duo-name">{charP1.name}</span>
+                    <span className="duo-score">{scores[0]}</span>
+                  </div>
+                </div>
+
+                <div className="duo-center">
+                  {turnBanner
+                    ? <span className="turn-flash" key={currentPlayer}>
+                        {currentPlayer === 0 ? `¡Turno de ${charP1.name}!` : `¡Turno de ${charP2.name}!`}
+                      </span>
+                    : <span className="turn-arrow">{currentPlayer === 0 ? '◀' : '▶'}</span>
+                  }
+                </div>
+
+                <div className={"duo-player" + (currentPlayer === 1 ? " active" : " idle")}
+                     style={{ '--char-color': charP2.color }}>
+                  <div className="duo-info right">
+                    <span className="duo-name">{charP2.name}</span>
+                    <span className="duo-score">{scores[1]}</span>
+                  </div>
+                  <div className="duo-avatar"><charP2.Avatar /></div>
+                </div>
               </div>
             )}
           </section>
@@ -546,6 +717,8 @@ export default function App() {
               moves={moves}
               onAgain={restart}
               onMenu={toMenu}
+              charP1={charP1}
+              charP2={charP2}
             />
           )}
         </>
@@ -557,12 +730,35 @@ export default function App() {
 /** =============
  *  Dashboard (limpio)
  *  ============ */
-function Dashboard({ difficulty, setDifficulty, mode, setMode, onStart }) {
+function CharPicker({ label, selected, onChange, exclude }) {
+  return (
+    <div className="char-picker">
+      <span className="dash-label">{label}</span>
+      <div className="char-grid">
+        {CHARACTERS.map(ch => (
+          <button
+            key={ch.id}
+            className={"char-card" + (selected.id === ch.id ? " selected" : "") + (exclude?.id === ch.id ? " taken" : "")}
+            style={{ '--ch-color': ch.color }}
+            onClick={() => exclude?.id !== ch.id && onChange(ch)}
+            aria-label={ch.name}
+            title={ch.name}
+          >
+            <div className="char-card-avatar"><ch.Avatar /></div>
+            <span className="char-card-name">{ch.name}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Dashboard({ difficulty, setDifficulty, mode, setMode, onStart, charP1, setCharP1, charP2, setCharP2 }) {
   return (
     <div className="dashboard">
       <div className="dash-card">
         <h1>🚀 {GAME_NAME}</h1>
-        <p className="dash-sub">Elige modo y dificultad.</p>
+        <p className="dash-sub">Elige modo, dificultad y personaje.</p>
 
         <div className="dash-grid">
           <div className="dash-field">
@@ -592,6 +788,15 @@ function Dashboard({ difficulty, setDifficulty, mode, setMode, onStart }) {
             </div>
           </div>
         </div>
+
+        {mode === "single" ? (
+          <CharPicker label="Tu personaje" selected={charP1} onChange={setCharP1} />
+        ) : (
+          <div className="duo-pickers">
+            <CharPicker label="Jugador 1" selected={charP1} onChange={setCharP1} exclude={charP2} />
+            <CharPicker label="Jugador 2" selected={charP2} onChange={setCharP2} exclude={charP1} />
+          </div>
+        )}
 
         <div className="dash-actions">
           <button className="btn btn-xl" onClick={onStart} aria-label="Iniciar juego">Iniciar misión</button>
@@ -688,13 +893,19 @@ function Card({ card, index, isFlipped, onFlip, isFx }) {
 /** ============
  *  Modal Win
  *  ============ */
-function WinModal({ mode, scores, time, moves, onAgain, onMenu }) {
+function WinModal({ mode, scores, time, moves, onAgain, onMenu, charP1, charP2 }) {
   const [p1, p2] = scores || [0, 0];
-  let result = null;
-  if (mode === "duo") result = p1 === p2 ? "Empate" : p1 > p2 ? "🏆 Gana Jugador 1" : "🏆 Gana Jugador 2";
+  const winner = mode === "duo"
+    ? (p1 === p2 ? null : p1 > p2 ? charP1 : charP2)
+    : charP1;
   return (
     <div className="modal">
       <div className="modal-card">
+        {winner && (
+          <div className="win-char" style={{ '--ch-color': winner.color }}>
+            <winner.Avatar />
+          </div>
+        )}
         <h2>🎉 ¡Misión completada!</h2>
         {mode === "single" ? (
           <>
@@ -703,8 +914,22 @@ function WinModal({ mode, scores, time, moves, onAgain, onMenu }) {
           </>
         ) : (
           <>
-            <p className="scoreline"><span>Jugador 1</span> <b>{p1}</b> · <span>Jugador 2</span> <b>{p2}</b></p>
-            <p className="winner">{result}</p>
+            <div className="win-score-row">
+              <div className="win-score-cell" style={{ '--ch-color': charP1.color }}>
+                <div className="win-score-avatar"><charP1.Avatar /></div>
+                <span>{charP1.name}</span>
+                <b className="win-pts">{p1}</b>
+              </div>
+              <span className="win-vs">vs</span>
+              <div className="win-score-cell" style={{ '--ch-color': charP2.color }}>
+                <div className="win-score-avatar"><charP2.Avatar /></div>
+                <span>{charP2.name}</span>
+                <b className="win-pts">{p2}</b>
+              </div>
+            </div>
+            <p className="winner">
+              {p1 === p2 ? "¡Empate!" : `🏆 ¡Gana ${winner.name}!`}
+            </p>
           </>
         )}
         <div className="modal-actions">
