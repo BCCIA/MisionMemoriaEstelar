@@ -1,0 +1,507 @@
+:root{
+  --bg: #070b16;
+  --bg2:#0b1222;
+  --panel:#0f172a;
+  --ink:#e5e7eb;
+  --muted:#94a3b8;
+  --brand:#60a5fa;
+  --accent:#5eead4;
+  --gold:#fde68a;
+  --ring:#1f2a44;
+  --ok:#22c55e;
+
+  /* === Turno (se setean por [data-turn]) === */
+  --turn-base: transparent;     /* color principal del turno */
+  --turn-glow: rgba(0,0,0,0);   /* halo suave */
+  --turn-opacity: 0;            /* 0..1 para mostrar/ocultar overlay */
+  --outline: rgba(96,165,250,.6); /* color de borde activo (score) por defecto */
+}
+
+/* ======== STARFIELD ======== */
+.starfield{
+  position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden;
+}
+.star-dot{
+  position:absolute; border-radius:50%; background:#fff;
+  opacity: var(--star-op, 0.35);
+  animation: twinkle linear infinite;
+}
+@keyframes twinkle{
+  0%,100%{ opacity: var(--star-op, 0.35); transform: scale(1); }
+  50%{ opacity: calc(var(--star-op, 0.35) * 0.25); transform: scale(0.8); }
+}
+.shoot-star{
+  position:absolute;
+  width:90px; height:1.5px;
+  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,.9) 50%, rgba(255,255,255,0) 100%);
+  border-radius:999px;
+  transform: rotate(-35deg);
+  opacity:0;
+  animation: shoot-across linear infinite;
+}
+@keyframes shoot-across{
+  0%   { transform: rotate(-35deg) translateX(0);     opacity:0 }
+  4%   { opacity:1 }
+  55%  { opacity:.7 }
+  75%  { opacity:0 }
+  100% { transform: rotate(-35deg) translateX(700px); opacity:0 }
+}
+
+*{box-sizing:border-box}
+html,body,#root{height:100%}
+html,body{
+  margin:0;
+  background:
+    radial-gradient(1200px 600px at 20% -10%, #112033, transparent),
+    radial-gradient(900px 600px at 120% 120%, #1b2b46, transparent),
+    var(--bg);
+  color:var(--ink);
+  font-family: Inter, system-ui, Segoe UI, Roboto, Arial, sans-serif;
+}
+
+.wrap{
+  min-height:100%;
+  display:flex;
+  flex-direction:column;
+  padding-bottom: env(safe-area-inset-bottom);
+  position: relative; /* necesario para overlays */
+}
+
+/* Fondo tintado por turno */
+.wrap::before{
+  content:"";
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(120% 80% at 50% 20%, var(--turn-glow) 0%, transparent 60%),
+    linear-gradient(180deg, color-mix(in srgb, var(--turn-base) 22%, transparent), transparent);
+  opacity: var(--turn-opacity, 0);
+  transition: opacity .25s ease, background .25s ease;
+}
+.wrap[data-turn="p1"]{ --turn-base:#2563EB; --turn-glow:rgba(96,165,250,.28); --turn-opacity:.45; --outline:rgba(96,165,250,.65) }
+.wrap[data-turn="p2"]{ --turn-base:#E11D48; --turn-glow:rgba(244,114,182,.28); --turn-opacity:.45; --outline:rgba(244,114,182,.65) }
+.wrap[data-turn="none"]{ --turn-opacity: 0 }
+
+/* Asegura que UI > overlay */
+.topbar, .stats, .grid, .modal, .foot, .dashboard { position: relative; z-index: 1; }
+
+/* ======== INTRO OVERLAY ======== */
+.intro-modal{
+  position: fixed; inset: 0; z-index: 999;
+  display:grid; place-items:center;
+  background: linear-gradient(180deg, rgba(2,8,23,.7), rgba(2,8,23,.6));
+  backdrop-filter: blur(6px);
+  animation: fade-in .25s ease both;
+}
+.intro-modal.fade-out{ animation: fade-out .35s ease forwards }
+@keyframes fade-in{ from{opacity:0} to{opacity:1} }
+@keyframes fade-out{ to{ opacity:0; visibility:hidden } }
+
+/* Gate card */
+.intro-gate-card{
+  width:min(560px, 92vw);
+  background:#0b1222;
+  border:1px solid #1e293b;
+  border-radius:16px;
+  padding: 18px 18px 14px;
+  text-align:center;
+  box-shadow: 0 20px 60px rgba(0,0,0,.45);
+}
+.intro-gate-badge{
+  display:inline-block;
+  font-size:12px; color:#cbd5e1;
+  border:1px solid #1e293b; border-radius:999px;
+  padding:4px 10px; margin-bottom:8px;
+  background: #0a1324;
+}
+.intro-gate-text{ color: var(--muted); margin: 4px 0 10px }
+.intro-gate-actions{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin: 10px 0 4px }
+
+/* Video layer (sin controles) con fondo de relleno */
+.intro-video-layer{
+  position: relative;
+  width: 100%;
+  display:grid; place-items:center;
+  padding: 16px;
+  isolation: isolate; /* asegura z-index correcto */
+}
+/* Relleno lateral: usa el poster si existe (se inyecta como --poster) */
+.intro-video-layer::before{
+  content:"";
+  position: absolute; inset: 0;
+  z-index: 0;
+  background:
+    var(--poster) center/cover no-repeat,
+    radial-gradient(100% 100% at 50% 50%, #0b1222 0%, #070b16 100%);
+  filter: blur(28px) brightness(.85) saturate(1.05);
+  transform: scale(1.1);
+}
+
+.skip-btn{
+  position:absolute; top:18px; right:18px;
+  background: rgba(2,8,23,.6);
+  border:1px solid #1e293b;
+  color:#e5e7eb; padding:8px 12px;
+  border-radius:12px; cursor:pointer;
+  z-index: 2; /* por encima del fondo y del frame */
+  backdrop-filter: blur(4px);
+}
+.skip-btn:hover{ background: rgba(2,8,23,.75) }
+
+/* Marco del video: LANDSCAPE por defecto */
+.intro-video-frame{
+  position: relative;
+  z-index: 1;            /* por encima del fondo desenfocado */
+  width: min(960px, 92vw);
+  aspect-ratio: 16 / 9;
+  max-height: 92vh;
+  border-radius: 16px;
+  overflow: hidden;
+  border:1px solid #1e293b;
+  box-shadow: 0 20px 60px rgba(0,0,0,.45);
+  background: #000;
+}
+/* Si el video es VERTICAL (9:16), marco alto y delgado */
+.intro-video-frame.portrait{
+  width: min(560px, 94vw);
+  aspect-ratio: 9 / 16;
+  max-height: 96vh;
+}
+
+.intro-video{
+  width:100%; height:100%;
+  object-fit: contain;      /* muestra el video completo (sin recorte) */
+  display:block; background:#000;
+}
+.intro-video-empty{
+  display:grid; place-items:center; height:100%; color:#cbd5e1;
+}
+
+/* ======== TOPBAR ======== */
+.topbar{
+  position:sticky; top:0;
+  display:flex; gap:16px; align-items:center; justify-content:space-between;
+  padding: calc(14px + env(safe-area-inset-top)) 16px 14px 16px;
+  background: rgba(3,7,18,.65);
+  backdrop-filter: blur(8px);
+  border-bottom:1px solid #1e293b;
+}
+.brand{
+  font-weight:800; letter-spacing:.4px;
+  background: linear-gradient(90deg, var(--brand), var(--accent));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: brand-glow 4s ease-in-out infinite;
+}
+@keyframes brand-glow{
+  0%,100%{ filter: drop-shadow(0 0 5px rgba(96,165,250,.35)); }
+  50%    { filter: drop-shadow(0 0 14px rgba(96,165,250,.75)); }
+}
+.controls{ display:flex; gap:10px; align-items:center; flex-wrap:wrap }
+.muted{ color:var(--muted) }
+
+.btn{
+  background: linear-gradient(90deg,var(--brand),var(--accent));
+  border:none; color:#04121a; padding:8px 12px; border-radius:12px; font-weight:700; cursor:pointer;
+  position:relative; overflow:hidden;
+  transition: box-shadow .25s ease, transform .12s ease;
+}
+.btn::after{
+  content:'';
+  position:absolute; inset:0;
+  background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,.28) 50%, transparent 65%);
+  transform: translateX(-120%);
+  pointer-events:none;
+  transition: none;
+}
+.btn:hover::after{ animation: btn-shine .5s ease forwards }
+.btn:hover{
+  box-shadow: 0 0 20px rgba(96,165,250,.5), 0 4px 18px rgba(0,0,0,.3);
+  transform: translateY(-1px);
+}
+.btn:active{ transform: translateY(0) }
+@keyframes btn-shine{ to{ transform: translateX(150%) } }
+
+.btn-ghost{
+  background: transparent; border:1px solid #1e293b; color:var(--ink);
+  padding:8px 12px; border-radius:12px; font-weight:700; cursor:pointer;
+  transition: border-color .2s ease, background .2s ease, box-shadow .2s ease;
+}
+.btn-ghost:hover{
+  border-color: var(--brand);
+  background: rgba(96,165,250,.07);
+  box-shadow: 0 0 12px rgba(96,165,250,.18);
+}
+.btn-xl{ padding:12px 18px; border-radius:14px; font-size:18px }
+
+/* ======== STATS ======== */
+.stats{
+  display:flex; gap:18px; align-items:center; justify-content:center;
+  padding:12px 16px; color:var(--ink);
+}
+.stats .tag{
+  display:inline-block; padding:2px 6px; font-size:12px; border:1px solid #1e293b; border-radius:999px; color:var(--muted); margin-right:6px;
+}
+
+/* ======== SCOREBOARD (2 jugadores) ======== */
+.scoreboard{
+  display:flex; gap:12px; align-items:center; flex-wrap:wrap; justify-content:center;
+}
+.pill{
+  display:flex; align-items:center; gap:8px; padding:6px 10px; border:1px solid var(--ring);
+  border-radius:999px; background:#0b1222; color:var(--ink);
+}
+.pill.active{
+  outline:2px solid var(--outline);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--outline) 25%, transparent) inset;
+}
+.turn{ color:var(--muted) }
+
+/* ======== DASHBOARD ======== */
+.dashboard{
+  flex:1; display:grid; place-items:center; padding: 24px 16px;
+}
+.dash-card{
+  width: min(720px, 94vw);
+  background: #0b1222;
+  border:1px solid #1e293b;
+  border-radius:16px;
+  padding: 20px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.45);
+  text-align:center;
+  animation: slide-up .55s cubic-bezier(0.16,1,0.3,1) both;
+}
+@keyframes slide-up{
+  from{ opacity:0; transform: translateY(28px) }
+  to  { opacity:1; transform: translateY(0) }
+}
+.dash-card h1{ margin:6px 0 4px }
+.dash-sub{ color:var(--muted); margin:0 0 12px }
+
+.dash-grid{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:14px;
+  margin: 12px 0 18px;
+}
+@media (max-width: 700px){
+  .dash-grid{ grid-template-columns: 1fr; }
+}
+
+.dash-field{ text-align:left }
+.dash-label{ display:block; font-size:12px; color:var(--muted); margin-bottom:6px }
+
+.dash-select, .dash-input{
+  width:100%;
+  background:#0b1222; color:var(--ink); border:1px solid var(--ring); border-radius:10px; padding:10px 12px;
+  transition: border-color .2s ease, box-shadow .2s ease;
+  appearance: none;
+  outline: none;
+}
+.dash-select:hover, .dash-select:focus,
+.dash-input:hover, .dash-input:focus{
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgba(96,165,250,.15);
+}
+
+/* ======== MODE CHIPS ======== */
+.mode-toggle{ display:flex; gap:8px }
+.mode-chip{
+  display:flex; align-items:center; justify-content:center; gap:6px;
+  padding:10px 16px; flex:1;
+  border:1px solid var(--ring); border-radius:10px;
+  cursor:pointer; font-size:14px; font-weight:600;
+  color:var(--muted); background:rgba(255,255,255,.02);
+  transition: border-color .2s ease, color .2s ease, background .2s ease, box-shadow .2s ease, transform .15s ease;
+}
+.mode-chip input[type=radio]{ display:none }
+.mode-chip:hover{
+  border-color:var(--brand); color:var(--ink);
+  background:rgba(96,165,250,.07);
+}
+.mode-chip.selected{
+  background: linear-gradient(135deg, rgba(96,165,250,.18), rgba(94,234,212,.1));
+  border-color: var(--brand); color:var(--ink);
+  box-shadow: 0 0 14px rgba(96,165,250,.25), inset 0 1px 0 rgba(255,255,255,.06);
+  transform: scale(1.03);
+}
+.dash-file{
+  display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:8px;
+}
+.dash-actions{
+  display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin: 14px 0 6px;
+}
+.dash-hint{ color:var(--muted); margin-top:10px }
+
+/* ======== GRID ULTRA-RESPONSIVE ======== */
+.grid{
+  margin: 12px auto;
+  display: grid;
+  justify-content: center; /* centra el tablero */
+}
+
+/* Imágenes de cartas (cuando usamos /public/cards) */
+.card-front .card-img{
+  width: 86%;
+  height: 86%;
+  object-fit: contain;
+  display: block;
+  filter: drop-shadow(0 6px 12px rgba(0,0,0,.35));
+  border-radius: 12px; /* queda bonito si la imagen es rectangular */
+}
+
+/* ======== CARTAS ======== */
+.card{
+  position:relative; aspect-ratio: 3 / 4;
+  background: transparent; border:none; padding:0; cursor:pointer;
+  perspective: 1000px; border-radius:16px; outline:none;
+  animation: card-enter .45s ease-out backwards;
+  animation-delay: calc(var(--i, 0) * 28ms);
+  transition: transform .18s ease;
+}
+.card:not(.flipped):hover{ transform: translateY(-5px) }
+@keyframes card-enter{
+  from{ opacity:0; transform: scale(.82) translateY(16px) }
+  to  { opacity:1; transform: scale(1)  translateY(0) }
+}
+
+.card-inner{
+  position:absolute; inset:0;
+  transition: transform .52s cubic-bezier(0.645, 0.045, 0.355, 1.000), box-shadow .25s ease;
+  transform-style: preserve-3d;
+  border-radius:16px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.35);
+}
+.card:not(.flipped):hover .card-inner{
+  box-shadow: 0 16px 40px rgba(96,165,250,.22), 0 8px 24px rgba(0,0,0,.45);
+}
+.card.flipped .card-inner{ transform: rotateY(180deg) }
+
+.card-face{
+  position:absolute; inset:0; display:grid; place-items:center;
+  border-radius:16px; backface-visibility:hidden; overflow:hidden;
+}
+
+/* Dorso */
+/* Dorso con logo */
+.card-back{
+  /* capa oscura suave encima del logo para contraste */
+  background:
+    linear-gradient(180deg, rgba(7,11,22,.25), rgba(7,11,22,.35)),
+    url("/ui/card-back.png") center / contain no-repeat,
+    linear-gradient(145deg,#0a1324,#0c1a33); /* fallback si no hay logo */
+  border:1px solid #1f2a44;
+}
+
+/* Oculta el símbolo ✦ del dorso porque ahora usamos logo */
+.card-back .dorso{
+  display: none;
+}
+
+/* Shimmer animado en cartas sin voltear */
+.card:not(.flipped) .card-back::after{
+  content:'';
+  position:absolute; inset:0;
+  background: linear-gradient(
+    115deg,
+    transparent 30%,
+    rgba(255,255,255,.09) 48%,
+    rgba(255,255,255,.12) 50%,
+    rgba(255,255,255,.09) 52%,
+    transparent 70%
+  );
+  animation: card-shimmer 3.5s ease-in-out infinite;
+  animation-delay: calc(var(--i, 0) * 80ms);
+}
+@keyframes card-shimmer{
+  0%,100%{ transform: translateX(-120%) skewX(-12deg) }
+  35%    { transform: translateX(220%)  skewX(-12deg) }
+}
+
+
+/* Frente */
+.card-front{
+  transform: rotateY(180deg);
+  background: radial-gradient(220px 160px at 50% 30%, rgba(96,165,250,.18), transparent), #0b1222;
+  border:1px solid #1f2a44;
+  transition: background .3s ease, border-color .3s ease;
+}
+.card-front svg{ width:56%; height:auto; filter: drop-shadow(0 6px 12px rgba(0,0,0,.35)); }
+
+/* Frente de cartas emparejadas — tinte verde sutil */
+.card.matched .card-front{
+  background: radial-gradient(200px 140px at 50% 30%, rgba(34,197,94,.14), rgba(96,165,250,.06), transparent), #0b1222;
+  border-color: rgba(34,197,94,.28);
+}
+
+/* ======== MODAL WIN ======== */
+.modal{
+  position: fixed; inset:0; display:grid; place-items:center;
+  background: rgba(2,8,23,.6); backdrop-filter: blur(4px);
+  animation: fade-in .3s ease both;
+}
+.modal-card{
+  width: min(460px, 92vw);
+  background: #0b1222; border:1px solid #1e293b; border-radius:16px;
+  padding: 18px;
+  text-align:center;
+  box-shadow: 0 20px 60px rgba(0,0,0,.45), 0 0 40px rgba(96,165,250,.12);
+  animation: modal-pop .45s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+}
+@keyframes modal-pop{
+  from{ opacity:0; transform: scale(.85) translateY(24px) }
+  to  { opacity:1; transform: scale(1)  translateY(0) }
+}
+.modal-card h2{ margin: 6px 0 8px }
+.modal-actions{ margin-top:12px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap }
+.scoreline{ color:var(--ink) }
+.winner{ color: var(--ok); font-weight: 700; }
+
+/* ======== FX MATCH ======== */
+.card.matched-fx{
+  animation: card-match-pop .5s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+}
+@keyframes card-match-pop{
+  0%   { transform: scale(1) }
+  45%  { transform: scale(1.11) }
+  70%  { transform: scale(.97) }
+  100% { transform: scale(1) }
+}
+
+.card.matched-fx::after{
+  content:"";
+  position:absolute; inset:-3px;
+  border-radius:16px;
+  pointer-events:none;
+  box-shadow:
+    0 0 0 2px rgba(255,255,255,.3),
+    0 0 24px rgba(250, 204, 21, .55),
+    0 0 56px rgba(250, 204, 21, .28),
+    0 0 80px rgba(94, 234, 212, .18);
+  animation: fx-glow .9s ease forwards;
+}
+@keyframes fx-glow{ to{ opacity: 0 } }
+.sparkles{
+  position:absolute; inset:0;
+  display:block;
+  pointer-events:none;
+  z-index: 5;
+}
+.spark{
+  position:absolute; left:50%; top:50%;
+  width: var(--sz); height: var(--sz);
+  margin-left: calc(var(--sz) / -2);
+  margin-top: calc(var(--sz) / -2);
+  background: radial-gradient(circle at 30% 30%, var(--color, #fff), rgba(255,255,255,.75) 45%, transparent 70%);
+  border-radius:50%;
+  filter: drop-shadow(0 0 5px var(--color, rgba(255,255,255,.6)));
+  animation: spark-burst var(--d) ease-out var(--delay) forwards;
+  transform: translate(0,0) scale(.6);
+  opacity: 1;
+}
+@keyframes spark-burst{
+  70% { opacity: 1 }
+  100% {
+    transform: translate(var(--tx), var(--ty)) scale(0);
+    opacity: 0;
+  }
+}
